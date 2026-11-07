@@ -1,0 +1,10 @@
+{
+  "name": "mibdm-frontend",
+  "version": "1.0.0",
+  "description": "FrontEnd de MiBDM (Bases de Datos I, TEC) - JavaScript, HTML y CSS sin dependencias",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve -l 5173 ."
+  }
+}
