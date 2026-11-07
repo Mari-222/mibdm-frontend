@@ -24,6 +24,7 @@ export async function vistaEstadisticas(el, usuario) {
     </div>
     <div class="grid-2">
       ${barras('Canciones más escuchadas', s.topCanciones)}
+      ${barras('Álbumes más escuchados', s.topAlbumes)}
       ${barras('Artistas más escuchados', s.topArtistas)}
       ${barras('Géneros más escuchados', s.topGeneros)}
       ${barras('Escuchas por plataforma', s.porPlataforma)}
