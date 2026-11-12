@@ -91,6 +91,7 @@ input, select, textarea {
   width: 100%;
 }
 input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+input:disabled { opacity: 0.75; cursor: not-allowed; }
 
 .campo { margin-bottom: 12px; }
 .fila { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
