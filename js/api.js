@@ -34,6 +34,7 @@ export const api = {
   login: (correo) => llamar('POST', '/auth/login', { correo }),
   registrar: (datos) => llamar('POST', '/usuarios', datos),
   usuario: (id) => llamar('GET', '/usuarios/' + id),
+  actualizarUsuario: (id, datos) => llamar('PUT', '/usuarios/' + id, datos),
 
   // catalogo
   artistas: (q) => llamar('GET', '/artistas' + qs({ q })),

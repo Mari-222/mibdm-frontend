@@ -10,6 +10,7 @@ import { vistaCalificaciones } from './views/calificaciones.js';
 import { vistaPorEscuchar } from './views/porEscuchar.js';
 import { vistaEstadisticas } from './views/estadisticas.js';
 import { vistaPublicar } from './views/publicar.js';
+import { vistaPerfil } from './views/perfil.js';
 
 // Cada ruta (#/nombre/id) apunta a una funcion que dibuja la vista dentro de <main>.
 const rutas = {
@@ -22,6 +23,7 @@ const rutas = {
   'por-escuchar': vistaPorEscuchar,
   estadisticas: vistaEstadisticas,
   publicar: vistaPublicar,
+  perfil: vistaPerfil,
 };
 
 const barra = document.getElementById('barra');
@@ -43,7 +45,7 @@ function pintarBarra(usuario, rutaActual) {
     <nav>${menu.map(([ruta, texto]) =>
       `<a href="#/${ruta}" class="${ruta === rutaActual ? 'activo' : ''}">${texto}</a>`).join('')}</nav>
     <div class="sesion">
-      <span>${esc(usuario.nombre)} ${esc(usuario.apellido)}${usuario.tipo === 'artista' ? ' (artista)' : ''}</span>
+      <a href="#/perfil" class="perfil-link ${rutaActual === 'perfil' ? 'activo' : ''}" title="Mi perfil">${esc(usuario.nombre)} ${esc(usuario.apellido)}${usuario.tipo === 'artista' ? ' (artista)' : ''}</a>
       <button class="secundario chiquito" id="salir">Salir</button>
     </div>`;
   document.getElementById('salir').addEventListener('click', () => {
