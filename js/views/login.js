@@ -36,6 +36,19 @@ export function vistaLogin(el, alEntrar) {
           <div class="campo"><label for="apellido">Apellido</label><input id="apellido" name="apellido" required></div>
           <div class="campo"><label for="correo-r">Correo</label><input id="correo-r" name="correo" type="email" required></div>
           <div class="campo"><label for="pais">País</label><input id="pais" name="pais"></div>
+          <div class="campo"><label for="tipo-cuenta">Tipo de cuenta</label>
+            <select id="tipo-cuenta" name="tipo">
+              <option value="normal">Normal (escucha y califica)</option>
+              <option value="artista">Artista (también publica su música)</option>
+            </select></div>
+          <div id="campos-artista" hidden>
+            <div class="campo"><label for="nombre-artista">Nombre artístico</label>
+              <input id="nombre-artista" name="nombreArtista"></div>
+            <div class="campo"><label for="tipo-artista">Tipo de artista</label>
+              <select id="tipo-artista" name="tipoArtista">
+                <option value="solista">Solista</option><option value="banda">Banda</option>
+              </select></div>
+          </div>
           <button type="submit">Registrarme</button>
           <button type="button" class="secundario" id="ir-login">Ya tengo cuenta</button>
         </form>
@@ -52,6 +65,16 @@ export function vistaLogin(el, alEntrar) {
   raiz.querySelector('#ir-login').addEventListener('click', () => {
     panelRegistro.hidden = true;
     panelLogin.hidden = false;
+  });
+
+  // Los campos del artista solo se muestran (y se exigen) si la cuenta es de tipo artista.
+  const tipoCuenta = raiz.querySelector('#tipo-cuenta');
+  const camposArtista = raiz.querySelector('#campos-artista');
+  const nombreArtista = raiz.querySelector('#nombre-artista');
+  tipoCuenta.addEventListener('change', () => {
+    const esArtista = tipoCuenta.value === 'artista';
+    camposArtista.hidden = !esArtista;
+    nombreArtista.required = esArtista;
   });
 
   raiz.querySelectorAll('[data-correo]').forEach((a) => a.addEventListener('click', (ev) => {
@@ -71,7 +94,21 @@ export function vistaLogin(el, alEntrar) {
 
   raiz.querySelector('#form-registro').addEventListener('submit', async (ev) => {
     ev.preventDefault();
-    const datos = Object.fromEntries(new FormData(ev.target));
+    const f = new FormData(ev.target);
+    const datos = {
+      nombre: f.get('nombre'),
+      apellido: f.get('apellido'),
+      correo: f.get('correo'),
+      pais: f.get('pais'),
+      tipo: f.get('tipo'),
+    };
+    if (datos.tipo === 'artista') {
+      datos.artista = {
+        nombre: f.get('nombreArtista'),
+        paisOrigen: f.get('pais'), // el pais de la cuenta es tambien el pais de origen del artista
+        tipo: f.get('tipoArtista'),
+      };
+    }
     const usuario = await intentar(() => api.registrar(datos));
     if (usuario) {
       aviso('Cuenta creada');

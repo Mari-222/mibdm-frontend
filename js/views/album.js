@@ -42,7 +42,13 @@ export async function vistaAlbum(el, usuario, id) {
       </form>
     </div>`);
 
-  formEscucha(raiz.querySelector('#escucha'), { usuario, plataformas, idAlbum: id });
+  if (d.canciones.length === 0) {
+    raiz.querySelector('#escucha').innerHTML = `
+      <h3 style="margin-top:0">Registrar escucha</h3>Este álbum todavía no tiene canciones registradas.
+      <p class="suave"></p>`;
+  } else {
+    formEscucha(raiz.querySelector('#escucha'), { usuario, plataformas, idAlbum: id });
+  }
   await formCalificar(raiz.querySelector('#calif'), {
     usuario, tipo: 'album', id,
     onCambio: () => vistaAlbum(el, usuario, id),
