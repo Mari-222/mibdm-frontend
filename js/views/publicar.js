@@ -1,17 +1,31 @@
 import { api } from '../api.js';
 import { esc, montar, vacio, aviso, intentar } from '../ui.js';
 
-/** Vista solo para usuarios de tipo 'artista': registrar álbumes y canciones de su catálogo. */
+/**
+ * Vista solo para usuarios de tipo 'artista': registrar álbumes y canciones de su catálogo.
+ * Todo lo que publica queda a nombre de su propio perfil de artista; en una canción solo
+ * puede agregar a OTROS artistas como intérpretes.
+ */
 export async function vistaPublicar(el, usuario) {
   if (usuario.tipo !== 'artista') {
     montar(el, vacio('Esta sección es solo para usuarios de tipo artista.'));
     return;
   }
 
-  const [artistas, albumes, generos] = await Promise.all([api.artistas(), api.albumes(), api.generos()]);
+  // Se vuelve a pedir el usuario para tener su idArtista aunque la sesión guardada sea anterior a este cambio.
+  const [yo, artistas, albumes, generos] = await Promise.all(
+    [api.usuario(usuario.idUsuario), api.artistas(), api.albumes(), api.generos()]);
+  const miArtista = artistas.find((a) => a.idArtista === yo.idArtista);
+  if (!miArtista) {
+    montar(el, vacio('Tu cuenta de artista todavía no tiene un perfil de artista asociado.'));
+    return;
+  }
+  const misAlbumes = albumes.filter((a) => a.idArtista === miArtista.idArtista);
+  const otrosArtistas = artistas.filter((a) => a.idArtista !== miArtista.idArtista);
 
   const raiz = montar(el, `
     <h2>Publicar en mi catálogo</h2>
+    <p class="suave">Publicando como <strong>${esc(miArtista.nombre)}</strong>: todo lo que publiques queda a tu nombre.</p>
 
     <div class="panel">
       <h3 style="margin-top:0">Nuevo álbum</h3>
@@ -25,9 +39,7 @@ export async function vistaPublicar(el, usuario) {
               <option value="sencillo">sencillo</option><option value="recopilatorio">recopilatorio</option>
             </select></div>
           <div class="campo"><label for="a-artista">Artista</label>
-            <select id="a-artista" name="artista">
-              ${artistas.map((a) => `<option value="${a.idArtista}">${esc(a.nombre)}</option>`).join('')}
-            </select></div>
+            <input id="a-artista" value="${esc(miArtista.nombre)}" disabled></div>
         </div>
         <p><button type="submit">Crear álbum</button></p>
       </form>
@@ -44,12 +56,12 @@ export async function vistaPublicar(el, usuario) {
           <div class="campo"><label for="c-album">Álbum</label>
             <select id="c-album" name="album">
               <option value="">Sencillo (sin álbum)</option>
-              ${albumes.map((a) => `<option value="${a.idAlbum}">${esc(a.titulo)} · ${esc(a.artista)}</option>`).join('')}
+              ${misAlbumes.map((a) => `<option value="${a.idAlbum}">${esc(a.titulo)}</option>`).join('')}
             </select></div>
           <div class="campo"><label for="c-pista">Número de pista (solo con álbum)</label><input id="c-pista" name="pista" type="number" min="1"></div>
         </div>
-        <div class="campo" style="margin-top:12px"><label>Intérpretes</label>
-          <div class="checks">${artistas.map((a) =>
+        <div class="campo" style="margin-top:12px"><label>Otros intérpretes (opcional)</label>
+          <div class="checks">${otrosArtistas.map((a) =>
             `<label><input type="checkbox" name="interpretes" value="${a.idArtista}"> ${esc(a.nombre)}</label>`).join('')}</div></div>
         <div class="campo"><label>Géneros</label>
           <div class="checks">${generos.map((g) =>
@@ -66,7 +78,6 @@ export async function vistaPublicar(el, usuario) {
       titulo: f.get('titulo'),
       anioLanzamiento: Number(f.get('anio')),
       tipo: f.get('tipo'),
-      idArtista: Number(f.get('artista')),
     }));
     if (r) {
       aviso('Álbum creado');

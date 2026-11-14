@@ -33,6 +33,7 @@ export const api = {
   // usuarios
   login: (correo) => llamar('POST', '/auth/login', { correo }),
   registrar: (datos) => llamar('POST', '/usuarios', datos),
+  usuario: (id) => llamar('GET', '/usuarios/' + id),
 
   // catalogo
   artistas: (q) => llamar('GET', '/artistas' + qs({ q })),
