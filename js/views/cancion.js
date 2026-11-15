@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { formEscucha, formCalificar } from '../components.js';
-import { esc, fmtDuracion, montar, promedioTexto } from '../ui.js';
+import { esc, fmtDuracion, montar, promedioTexto, aviso, intentar } from '../ui.js';
 
 export async function vistaCancion(el, usuario, id) {
   if (!id) {
@@ -9,6 +9,8 @@ export async function vistaCancion(el, usuario, id) {
   }
   const [d, plataformas] = await Promise.all([api.cancion(id), api.plataformas()]);
   const c = d.cancion;
+
+  const esAutor = usuario && usuario.tipo === 'artista' && d.participantes.some((p) => p.rol === 'compositor' && p.idArtista === usuario.idArtista);
 
   const raiz = montar(el, `
     <p><a href="#/explorar">← Explorar</a></p>
@@ -21,12 +23,33 @@ export async function vistaCancion(el, usuario, id) {
       <p>${promedioTexto(d.promedio, d.totalCalificaciones)}</p>
       <h3>Participan</h3>
       <ul>${d.participantes.map((p) =>
-        `<li><a href="#/artista/${p.idArtista}">${esc(p.nombre)}</a> <span class="suave">· ${esc(p.rol)}</span></li>`).join('')}</ul>
+      `<li><a href="#/artista/${p.idArtista}">${esc(p.nombre)}</a> <span class="suave">· ${esc(p.rol)}</span></li>`).join('')}</ul>
+      ${esAutor ? `<p style="margin-top: 16px;">
+        <button type="button" class="secundario chiquito" id="editar-cancion">Editar</button>
+        <button type="button" class="peligro chiquito" id="eliminar-cancion">Eliminar</button>
+      </p>` : ''}
     </div>
     <div class="grid-2">
       <div class="panel" id="escucha"></div>
       <div class="panel" id="calif"></div>
     </div>`);
+
+  if (esAutor) {
+    raiz.querySelector('#editar-cancion').addEventListener('click', () => {
+      location.hash = '#/publicar/' + id;
+    });
+    raiz.querySelector('#eliminar-cancion').addEventListener('click', async () => {
+      if (!confirm(`¿Eliminar la canción "${c.titulo}"?`)) return;
+      const ok = await intentar(async () => {
+        await api.eliminarCancion(id, usuario.idUsuario);
+        return true;
+      });
+      if (ok) {
+        aviso('Canción eliminada');
+        location.hash = c.idAlbum ? '#/album/' + c.idAlbum : '#/explorar';
+      }
+    });
+  }
 
   formEscucha(raiz.querySelector('#escucha'), { usuario, plataformas, idCancion: id });
   await formCalificar(raiz.querySelector('#calif'), {

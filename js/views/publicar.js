@@ -6,15 +6,21 @@ import { esc, montar, vacio, aviso, intentar } from '../ui.js';
  * Todo lo que publica queda a nombre de su propio perfil de artista; en una canción solo
  * puede agregar a OTROS artistas como intérpretes.
  */
-export async function vistaPublicar(el, usuario) {
+export async function vistaPublicar(el, usuario, idCancionEditar) {
   if (usuario.tipo !== 'artista') {
     montar(el, vacio('Esta sección es solo para usuarios de tipo artista.'));
     return;
   }
 
   // Se vuelve a pedir el usuario para tener su idArtista aunque la sesión guardada sea anterior a este cambio.
-  const [yo, artistas, albumes, generos] = await Promise.all(
-      [api.usuario(usuario.idUsuario), api.artistas(), api.albumes(), api.generos()]);
+  const [yo, artistas, albumes, generos, cancionEditar] = await Promise.all([
+    api.usuario(usuario.idUsuario),
+    api.artistas(),
+    api.albumes(),
+    api.generos(),
+    idCancionEditar ? api.cancion(idCancionEditar) : null
+  ]);
+
   const miArtista = artistas.find((a) => a.idArtista === yo.idArtista);
   if (!miArtista) {
     montar(el, vacio('Tu cuenta de artista todavía no tiene un perfil de artista asociado.'));
@@ -87,6 +93,29 @@ export async function vistaPublicar(el, usuario) {
   let editandoAlbum = null;   // id del album en edicion (null = creando uno nuevo)
   const formAlbum = raiz.querySelector('#form-album');
 
+  let editandoCancion = null;
+  if (cancionEditar) {
+    const c = cancionEditar.cancion;
+    editandoCancion = c.idCancion;
+    const f = raiz.querySelector('#form-cancion');
+    f.elements.titulo.value = c.titulo;
+    f.elements.duracion.value = c.duracionSeg;
+    f.elements.album.value = c.idAlbum ?? '';
+    f.elements.pista.value = c.numeroPista ?? '';
+    cancionEditar.participantes
+        .filter((p) => p.rol === 'interprete' && p.idArtista !== miArtista.idArtista)
+        .forEach((p) => {
+          const cb = f.querySelector(`input[name=interpretes][value="${p.idArtista}"]`);
+          if (cb) cb.checked = true;
+        });
+    cancionEditar.generos.forEach((g) => {
+      const cb = f.querySelector(`input[name=generos][value="${g.idGenero}"]`);
+      if (cb) cb.checked = true;
+    });
+    f.querySelector('button[type=submit]').textContent = 'Guardar cambios';
+    f.scrollIntoView({ behavior: 'smooth' });
+  }
+
   raiz.querySelectorAll('.editar-album').forEach((btn) => {
     btn.addEventListener('click', () => {
       const a = misAlbumes.find((x) => x.idAlbum === Number(btn.dataset.id));
@@ -135,7 +164,7 @@ export async function vistaPublicar(el, usuario) {
   raiz.querySelector('#form-cancion').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const f = new FormData(ev.target);
-    const r = await intentar(() => api.crearCancion({
+    const datos = {
       idUsuario: usuario.idUsuario,
       titulo: f.get('titulo'),
       duracionSeg: Number(f.get('duracion')),
@@ -143,10 +172,14 @@ export async function vistaPublicar(el, usuario) {
       numeroPista: f.get('pista') === '' ? null : Number(f.get('pista')),
       idsInterpretes: f.getAll('interpretes').map(Number),
       idsGeneros: f.getAll('generos').map(Number),
-    }));
+    };
+    const r = await intentar(() => editandoCancion
+        ? api.actualizarCancion(editandoCancion, datos)
+        : api.crearCancion(datos));
     if (r) {
-      aviso('Canción creada');
-      ev.target.reset();
+      aviso(editandoCancion ? 'Canción actualizada' : 'Canción creada');
+      if (editandoCancion) location.hash = '#/cancion/' + editandoCancion;
+      else ev.target.reset();
     }
   });
 }
