@@ -14,7 +14,7 @@ export async function vistaPublicar(el, usuario) {
 
   // Se vuelve a pedir el usuario para tener su idArtista aunque la sesión guardada sea anterior a este cambio.
   const [yo, artistas, albumes, generos] = await Promise.all(
-    [api.usuario(usuario.idUsuario), api.artistas(), api.albumes(), api.generos()]);
+      [api.usuario(usuario.idUsuario), api.artistas(), api.albumes(), api.generos()]);
   const miArtista = artistas.find((a) => a.idArtista === yo.idArtista);
   if (!miArtista) {
     montar(el, vacio('Tu cuenta de artista todavía no tiene un perfil de artista asociado.'));
@@ -46,6 +46,20 @@ export async function vistaPublicar(el, usuario) {
     </div>
 
     <div class="panel">
+      <h3 style="margin-top:0">Mis álbumes</h3>
+      ${misAlbumes.length === 0 ? '<p class="suave">Todavía no has publicado álbumes.</p>' : `
+      <div class="tabla-scroll"><table>
+        <tr><th>Título</th><th>Año</th><th>Tipo</th><th>Canciones</th><th></th></tr>
+        ${misAlbumes.map((a) => `<tr>
+          <td>${esc(a.titulo)}</td><td>${a.anioLanzamiento}</td><td>${esc(a.tipo)}</td><td>${a.numCanciones}</td>
+          <td>
+            <button type="button" class="secundario chiquito editar-album" data-id="${a.idAlbum}">Editar</button>
+            <button type="button" class="peligro chiquito eliminar-album" data-id="${a.idAlbum}">Eliminar</button>
+          </td></tr>`).join('')}
+      </table></div>`}
+    </div>
+
+    <div class="panel">
       <h3 style="margin-top:0">Nueva canción</h3>
       <form id="form-cancion">
         <div class="fila">
@@ -62,27 +76,60 @@ export async function vistaPublicar(el, usuario) {
         </div>
         <div class="campo" style="margin-top:12px"><label>Otros intérpretes (opcional)</label>
           <div class="checks">${otrosArtistas.map((a) =>
-            `<label><input type="checkbox" name="interpretes" value="${a.idArtista}"> ${esc(a.nombre)}</label>`).join('')}</div></div>
+      `<label><input type="checkbox" name="interpretes" value="${a.idArtista}"> ${esc(a.nombre)}</label>`).join('')}</div></div>
         <div class="campo"><label>Géneros</label>
           <div class="checks">${generos.map((g) =>
-            `<label><input type="checkbox" name="generos" value="${g.idGenero}"> ${esc(g.nombre)}</label>`).join('')}</div></div>
+      `<label><input type="checkbox" name="generos" value="${g.idGenero}"> ${esc(g.nombre)}</label>`).join('')}</div></div>
         <button type="submit">Crear canción</button>
       </form>
     </div>`);
 
-  raiz.querySelector('#form-album').addEventListener('submit', async (ev) => {
+  let editandoAlbum = null;   // id del album en edicion (null = creando uno nuevo)
+  const formAlbum = raiz.querySelector('#form-album');
+
+  raiz.querySelectorAll('.editar-album').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const a = misAlbumes.find((x) => x.idAlbum === Number(btn.dataset.id));
+      editandoAlbum = a.idAlbum;
+      formAlbum.elements.titulo.value = a.titulo;
+      formAlbum.elements.anio.value = a.anioLanzamiento;
+      formAlbum.elements.tipo.value = a.tipo;
+      formAlbum.querySelector('button[type=submit]').textContent = 'Guardar cambios';
+      formAlbum.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  formAlbum.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const f = new FormData(ev.target);
-    const r = await intentar(() => api.crearAlbum({
+    const datos = {
       idUsuario: usuario.idUsuario,
       titulo: f.get('titulo'),
       anioLanzamiento: Number(f.get('anio')),
       tipo: f.get('tipo'),
-    }));
+    };
+    const r = await intentar(() => editandoAlbum
+        ? api.actualizarAlbum(editandoAlbum, datos)
+        : api.crearAlbum(datos));
     if (r) {
-      aviso('Álbum creado');
+      aviso(editandoAlbum ? 'Álbum actualizado' : 'Álbum creado');
       vistaPublicar(el, usuario);
     }
+  });
+
+  raiz.querySelectorAll('.eliminar-album').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const a = misAlbumes.find((x) => x.idAlbum === Number(btn.dataset.id));
+      if (!confirm(`¿Eliminar el álbum "${a.titulo}"?`)) return;
+      const ok = await intentar(async () => {
+        await api.eliminarAlbum(a.idAlbum, usuario.idUsuario);
+        return true;
+      });
+      if (ok) {
+        aviso('Álbum eliminado');
+        vistaPublicar(el, usuario);
+      }
+    });
   });
 
   raiz.querySelector('#form-cancion').addEventListener('submit', async (ev) => {

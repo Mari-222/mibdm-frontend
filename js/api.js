@@ -47,6 +47,10 @@ export const api = {
   plataformas: () => llamar('GET', '/plataformas'),
   crearAlbum: (datos) => llamar('POST', '/albumes', datos),
   crearCancion: (datos) => llamar('POST', '/canciones', datos),
+  actualizarAlbum: (id, datos) => llamar('PUT', '/albumes/' + id, datos),
+  eliminarAlbum: (id, idUsuario) => llamar('DELETE', `/albumes/${id}?idUsuario=${idUsuario}`),
+  actualizarCancion: (id, datos) => llamar('PUT', '/canciones/' + id, datos),
+  eliminarCancion: (id, idUsuario) => llamar('DELETE', `/canciones/${id}?idUsuario=${idUsuario}`),
 
   // escuchas
   escuchas: (u, limite = 100) => llamar('GET', `/usuarios/${u}/escuchas?limite=${limite}`),
